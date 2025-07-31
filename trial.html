@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aplikasi Diagnosis Keperawatan</title>
+  <style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(to right, #e3f2fd, #ffffff);
+    color: #333;
+    margin: 0;
+    padding: 20px;
+  }
+  h2 {
+    text-align: center;
+    color: #0d47a1;
+    margin-bottom: 30px;
+  }
+  .form-group label {
+    font-weight: bold;
+    display: block;
+    margin: 10px 0 5px;
+  }
+  select, input[type="text"], button {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    border: 1px solid #b0bec5;
+  }
+  button {
+    background-color: #0d47a1;
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  button:hover {
+    background-color: #1565c0;
+  }
+  .result {
+    border-radius: 8px;
+    background-color: #fff;
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  }
+  .kategori-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .gejala-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    /* ✅ Tambahan untuk scroll di HP */
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 10px;
+  }
+  .gejala-container label {
+    background-color: #bbdefb;
+    padding: 6px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+  }
+  .tingkat-cocok.green { color: green; }
+  .tingkat-cocok.orange { color: orange; }
+  .tingkat-cocok.red { color: red; }
+  .book-label {
+    display: inline-block;
+    background-color: #fce4ec;
+    color: #880e4f;
+    font-size: 12px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: 5px;
+  }
+  @media (max-width: 600px) {
+    h2 {
+      font-size: 22px;
+    }
+    button {
+      font-size: 16px;
+    }
+    /* ❗ Biar scroll tetap nyaman di HP */
+    .gejala-container {
+      max-height: 180px;
+    }
+  }
+</style>
+</head>
+<body>
+  <h2>🩺 Aplikasi Diagnosis Keperawatan</h2>
+  <div class="form-group">
+    <label for="kategoriUtama">Kategori Utama:</label>
+    <select id="kategoriUtama" onchange="perbaruiSubkategori()">
+      <option value="Semua">Semua</option>
+      <option value="Fisiologis">Fisiologis</option>
+      <option value="Psikologis">Psikologis</option>
+    </select>
+    <label for="subKategori">Subkategori Diagnosis:</label>
+    <select id="subKategori" onchange="tampilkanGejala()">
+      <option value="Semua">Semua</option>
+    </select>
+
+    <label>Cari Gejala:</label>
+    <input type="text" id="search" placeholder="Ketik gejala..." oninput="filterGejala()">
+  </div>
+  <div id="gejalaList" class="gejala-container"></div>
+  <button onclick="cariDiagnosis()">Cari Diagnosis</button>
+  <button onclick="resetForm()">Reset Formulir</button>
+
+  <div id="hasilDiagnosis" class="result"></div>
+  <button onclick="cetakHasil()">Cetak Hasil Diagnosa</button>
+
+  <script>
+    const dataDiagnosa = [
+      {
+        code: "D.0001",
+        name: "Bersihan Jalan Napas Tidak Efektif",
+        kategori: "Fisiologis",
+        subkategori: "Respirasi",
+        deskripsi: "Ketidakmampuan membersihkan sekret atau obstruksi jalan napas untuk mempertahankan jalan napas tetap paten.",
+        halamanDiagnosa: "Hal. 18", 
+        intervensi: [
+      {
+        code: "I.01006",
+        name: "Latihan Batuk Efektif ",
+        deskripsi: "Melatih pasien yang tidak memiliki kemampuan batuk secara efektif untuk membembersihan laring, trakea dan bronkiolus dari sekret atau benda asing di jalan napas.",
+        halaman: "Hal. 142"
+      },
+      {
+        code: "I.01011",
+        name: "Manajemen Jalan Napas",
+        deskripsi: "Mengidentifikasi dan mengelola kepatenan jalan napas.",
+        halaman: "Hal. 186"
+      },
+      {
+        code: "I.01014",
+        name: "Pemantauan Respirasi",
+        deskripsi: "Mengumpulkan dan menganalisis data untuk memastikan kepatenan jalan napas dan keefektifan pertukaran gas.",
+        halaman: "Hal. 247"
+      }
+      ],
+        luaran: {
+        code: "L.01001",
+        name: "Bersihan Jalan Napas",
+        deskripsi: "Kemampuan membersihkan sekret atau obstruksi jalan napas untuk mempertahankan jalan napas tetap paten.",
+        halaman: "20",
+        ekspektasi: "Meningkat."
+      },
+        gejala: ["batuk tidak efektif", "tidak mampu batuk","sputum berlebih",  "mengi, wheezing, dan/atau ronkhi kering", "mekonium di jalan napas (pada neonatus)", "dispnea", "sulit bicara", "ortopnea", "gelisah", "sianosis", "bunyi napas menurun", "frekuensi napas berubah", "pola napas berubah"]
+      },
+      {
+        code: "D.0020",
+        name: "Diare",
+        kategori: "Fisiologis",
+        subkategori: "Nutrisi dan Cairan",
+        deskripsi: "Pengeluaran feses yang sering, lunak dan tidak terbentuk.",
+        halamanDiagnosa: "Hal. 58",
+        intervensi: [
+      {
+        code: "I.03101",
+        name: "Manajemen Diare ",
+        deskripsi: "Mengidentifikasi dan mengelola diare dan dampaknya.",
+        halaman: "Hal. 165"
+      },
+      {
+        code: "I.03121",
+        name: "Pemantauan Cairan ",
+        deskripsi: "Mengumpulkan dan menganalisis data terkait pengaturan keseimbangan cairan.",
+        halaman: "Hal. 238"
+      }
+      ],
+        luaran: {
+          code: "L.04033",
+          name: "Eliminasi Fekal",
+          deskripsi: "Proses pengeluaran feses yang mudah dan konsistensi, frekuensi dan bentuk feses yang normal.",
+          halaman: "Hal. 25" ,
+          ekspektasi: "Membaik."
+        },
+        gejala: ["defekasi lebih dari 3x dalam 24 jam", "feses lembek atau cair", "urgency", "nyeri/kram abdomen", "frekuensi peristaltik meningkat", "bising usus hiperaktif"]
+      },
+      {
+        code: "D.0045",
+        name: "Risiko Infeksi",
+        kategori: "Fisiologis",
+        subkategori: "Imunologi",
+        deskripsi: "Peningkatan risiko terhadap invasi organisme patogenik.",
+        halamanDiagnosa: "Hal. 60",
+        intervensi: {
+          code: "I.010",
+          name: "Pencegahan Infeksi",
+          deskripsi: "Pemantauan tanda-tanda infeksi dan menjaga kebersihan.",
+          halaman: "Hal. 98"
+        },
+        luaran: {
+          code: "L.010",
+          name: "Tidak Ada Infeksi",
+          deskripsi: "Pasien bebas dari tanda dan gejala infeksi.",
+          halaman: "Hal. 130"
+        },
+        gejala: ["imunitas rendah", "luka terbuka", "pemasangan alat invasif", "demam", "jumlah leukosit meningkat"]
+      },
+      {
+        code: "D.0070",
+        name: "Gangguan Pola Tidur",
+        kategori: "Psikologis",
+        subkategori: "Tidur dan Istirahat",
+        deskripsi: "Gangguan dalam kuantitas dan kualitas tidur yang mengganggu fungsi sehari-hari.",
+        halamanDiagnosa: "Hal. 70",
+        intervensi: {
+          code: "I.020",
+          name: "Manajemen Tidur",
+          deskripsi: "Peningkatan kenyamanan dan teknik relaksasi sebelum tidur.",
+          halaman: "Hal. 105"
+        },
+        luaran: {
+          code: "L.020",
+          name: "Tidur Efektif",
+          deskripsi: "Pasien dapat tidur dengan nyenyak dan merasa segar saat bangun.",
+          halaman: "Hal. 134"
+        },
+        gejala: ["sulit tidur", "terbangun di malam hari", "lelah sepanjang hari", "gelisah saat tidur", "sulit mempertahankan tidur"]
+      }
+    ];
+
+    let semuaGejala = [];
+
+    function perbaruiSubkategori() {
+      const kat = document.getElementById('kategoriUtama').value;
+      const sub = document.getElementById('subKategori');
+      sub.innerHTML = '<option value="Semua">Semua</option>';
+      const list = [...new Set(dataDiagnosa.filter(d => kat === "Semua" || d.kategori === kat).map(d => d.subkategori))];
+      list.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s;
+        opt.textContent = s;
+        sub.appendChild(opt);
+      });
+      tampilkanGejala();
+    }
+
+    function tampilkanGejala() {
+      const kategori = document.getElementById("kategoriUtama").value;
+      const subkategori = document.getElementById("subKategori").value;
+      const listDiv = document.getElementById("gejalaList");
+      listDiv.innerHTML = '';
+      const filterDiagnosa = dataDiagnosa.filter(d => (kategori === "Semua" || d.kategori === kategori) && (subkategori === "Semua" || d.subkategori === subkategori));
+      semuaGejala = [...new Set(filterDiagnosa.flatMap(d => d.gejala))];
+      semuaGejala.forEach(g => {
+        const el = document.createElement('label');
+        el.innerHTML = `<input type="checkbox" value="${g}"> ${g}`;
+        listDiv.appendChild(el);
+      });
+    }
+
+    function filterGejala() {
+      const q = document.getElementById('search').value.toLowerCase();
+      document.querySelectorAll('#gejalaList label').forEach(label => {
+        label.style.display = label.textContent.toLowerCase().includes(q) ? '' : 'none';
+      });
+    }
+
+    function resetForm() {
+      document.querySelectorAll('#gejalaList input').forEach(cb => cb.checked = false);
+      document.getElementById('search').value = '';
+      filterGejala();
+      document.getElementById('hasilDiagnosis').innerHTML = '';
+    }
+
+    function cariDiagnosis() {
+      const dipilih = Array.from(document.querySelectorAll('#gejalaList input:checked')).map(cb => cb.value);
+      const hasilDiv = document.getElementById('hasilDiagnosis');
+      hasilDiv.innerHTML = '';
+
+      const hasil = dataDiagnosa
+        .filter(d => d.gejala.some(g => dipilih.includes(g)))
+        .map(d => {
+          const jumlahCocok = d.gejala.filter(g => dipilih.includes(g)).length;
+          const tingkatCocok = Math.round((jumlahCocok / d.gejala.length) * 100);
+          return { ...d, cocok: tingkatCocok };
+        })
+        .sort((a, b) => b.cocok - a.cocok);
+
+      if (hasil.length === 0) {
+        hasilDiv.innerHTML = '<b>Tidak ada diagnosis yang cocok.</b>';
+        return;
+      }
+
+      hasil.forEach(d => {
+        const color = d.cocok >= 80 ? 'green' : d.cocok >= 50 ? 'orange' : 'red';
+        hasilDiv.innerHTML += `
+          <b>[${d.code}] ${d.name}</b> <span class="book-label">${d.halamanDiagnosa}</span><br>
+          <i>${d.deskripsi}</i><br><br>
+          <b>Intervensi:</b><br>
+${d.intervensi.map(i => `
+  (${i.code}) <b>${i.name}</b> <span class="book-label">${i.halaman}</span><br>
+  <i>${i.deskripsi}</i><br><br>
+`).join('')}
+<p style="color: red; font-style: italic;">(Intervensi di atas adalah intervensi utama. Silakan pilih mana intervensi yang sesuai untuk pasien Anda.)</p>
+          <b>Luaran:</b> (${d.luaran.code}) ${d.luaran.name} <span class="book-label">${d.luaran.halaman}</span><br>
+<i>${d.luaran.deskripsi}</i><br>
+<small><b>Ekspektasi:</b> ${d.luaran.ekspektasi}</small><br><br>
+          <span class="tingkat-cocok ${color}">Tingkat Kecocokan: ${d.cocok}%</span>
+          <hr>
+        `;
+      });
+    }
+
+    function cetakHasil() {
+      const printWindow = window.open('', '', 'width=800,height=600');
+      printWindow.document.write('<html><head><title>Hasil Diagnosis</title></head><body>');
+      printWindow.document.write('<h2>Hasil Diagnosis Keperawatan</h2>');
+      printWindow.document.write(document.getElementById('hasilDiagnosis').innerHTML);
+      printWindow.document.write('</body></html>');
+      printWindow.document.close();
+      printWindow.print();
+    }
+
+    perbaruiSubkategori();
+  </script>
+</body>
+</html>
